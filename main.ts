@@ -77,38 +77,38 @@ export default class ObvecPlugin extends Plugin {
     this.addCommand({
       id: 'sync-now',
       name: 'Sync vault now',
-      callback: () => this.syncAll(),
+      callback: () => { void this.syncAll(); },
     });
 
     this.addCommand({
       id: 'sync-status',
       name: 'View sync status',
-      callback: () => this.showSyncStatus(),
+      callback: () => { void this.showSyncStatus(); },
     });
 
     // File event listeners for real-time sync
     this.registerEvent(this.app.vault.on('modify', debounce((file: TFile) => {
       if (this.settings.autoSync && this.settings.apiKey) {
-        this.syncFile(file, 'upsert');
+        void this.syncFile(file, 'upsert');
       }
     }, 5000, true)));
 
     this.registerEvent(this.app.vault.on('create', (file) => {
       if (file instanceof TFile && this.settings.autoSync && this.settings.apiKey) {
-        this.syncFile(file, 'upsert');
+        void this.syncFile(file, 'upsert');
       }
     }));
 
     this.registerEvent(this.app.vault.on('delete', (file) => {
       if (file instanceof TFile && file.extension === 'md' && this.settings.autoSync && this.settings.apiKey) {
-        this.syncDeletedFile(file.path);
+        void this.syncDeletedFile(file.path);
       }
     }));
 
     this.registerEvent(this.app.vault.on('rename', (file, oldPath) => {
       if (file instanceof TFile && file.extension === 'md' && this.settings.autoSync && this.settings.apiKey) {
-        this.syncDeletedFile(oldPath);
-        this.syncFile(file, 'upsert');
+        void this.syncDeletedFile(oldPath);
+        void this.syncFile(file, 'upsert');
       }
     }));
 
@@ -117,10 +117,10 @@ export default class ObvecPlugin extends Plugin {
 
     // Fetch server stats on load
     if (this.settings.apiKey) {
-      this.fetchServerStats();
+      void this.fetchServerStats();
       // Initial sync (delayed 10s)
       if (this.settings.autoSync) {
-        setTimeout(() => this.syncAll(), 10000);
+        window.setTimeout(() => { void this.syncAll(); }, 10000);
       }
     }
   }
@@ -148,7 +148,7 @@ export default class ObvecPlugin extends Plugin {
 
     const ms = this.settings.syncIntervalMinutes * 60 * 1000;
     this.syncInterval = window.setInterval(() => {
-      this.syncAll();
+      void this.syncAll();
     }, ms);
     this.registerInterval(this.syncInterval);
   }
@@ -271,7 +271,7 @@ export default class ObvecPlugin extends Plugin {
   async syncAll() {
     if (this.isSyncing) return;
     if (!this.settings.apiKey) {
-      new Notice('Obvec: Please set your API key in settings');
+      new Notice('Obvec: please set your API key in settings');
       return;
     }
 
@@ -316,19 +316,19 @@ export default class ObvecPlugin extends Plugin {
         await this.fetchServerStats();
         this.updateStatusBar('idle');
         this.isSyncing = false;
-        new Notice(`Obvec: All ${totalFiles} files up to date`);
+        new Notice(`Obvec: all ${totalFiles} files up to date`);
         return;
       }
 
       // Phase 2: Upload in batches
       const estimatedMinutes = Math.ceil(filesToSync.length / 3 * 3 / 60);
-      console.log(`Obvec: Starting upload of ${filesToSync.length} files (~${estimatedMinutes} min)`);
-      new Notice(`Obvec: Uploading ${filesToSync.length} files (~${estimatedMinutes} min)`);
+      console.debug(`Obvec: starting upload of ${filesToSync.length} files (~${estimatedMinutes} min)`);
+      new Notice(`Obvec: uploading ${filesToSync.length} files (~${estimatedMinutes} min)`);
       const batchSize = 3; // Small batches to avoid ERR_INSUFFICIENT_RESOURCES
       const batchDelay = 3000; // 3s between batches for embedding processing
       let totalSynced = 0;
       let totalSkipped = 0;
-      let totalErrors: string[] = [];
+      const totalErrors: string[] = [];
       let uploaded = 0;
       let rateLimited = false;
 
@@ -360,22 +360,23 @@ export default class ObvecPlugin extends Plugin {
               }
             }
             success = true;
-          } catch (e: any) {
-            const status = e.message?.match(/\d+/)?.[0];
+          } catch (e: unknown) {
+            const errMsg = e instanceof Error ? e.message : String(e);
+            const status = errMsg.match(/\d+/)?.[0];
             if (status === '429' || status === '401') {
               // Rate limited or auth failed — stop retrying, don't burn more quota
-              console.error(`Obvec: ${status === '429' ? 'Rate limited' : 'Auth failed'} at batch ${i / batchSize + 1}, stopping sync`);
+              console.error(`Obvec: ${status === '429' ? 'rate limited' : 'auth failed'} at batch ${i / batchSize + 1}, stopping sync`);
               totalErrors.push(`${status === '429' ? 'Rate limited' : 'Auth failed'} after ${uploaded} files — will resume next sync`);
               rateLimited = true;
               break;
             }
-            console.error(`Obvec batch ${i / batchSize + 1} attempt ${attempt + 1} failed:`, e.message);
+            console.error(`Obvec batch ${i / batchSize + 1} attempt ${attempt + 1} failed:`, errMsg);
             if (status === '500' && attempt < 2) {
               // Server error — wait longer before retry
               await new Promise(r => setTimeout(r, 10000));
             }
             if (attempt === 2) {
-              totalErrors.push(`Batch ${i / batchSize + 1}: ${e.message}`);
+              totalErrors.push(`Batch ${i / batchSize + 1}: ${errMsg}`);
             }
           }
         }
@@ -399,10 +400,11 @@ export default class ObvecPlugin extends Plugin {
       }
 
       this.updateStatusBar('idle');
-    } catch (error: any) {
-      console.error('Obvec sync error:', error);
+    } catch (error: unknown) {
+      const errMsg = error instanceof Error ? error.message : String(error);
+      console.error('Obvec sync error:', errMsg);
       this.updateStatusBar('error');
-      new Notice(`Obvec sync failed: ${error.message}`);
+      new Notice(`Obvec sync failed: ${errMsg}`);
     } finally {
       this.isSyncing = false;
     }
@@ -430,14 +432,14 @@ export default class ObvecPlugin extends Plugin {
 
   async showSyncStatus() {
     if (!this.settings.apiKey) {
-      new Notice('Obvec: Please set your API key in settings');
+      new Notice('Obvec: please set your API key in settings');
       return;
     }
 
     try {
       const stats = await this.fetchServerStats();
       if (!stats) {
-        new Notice('Obvec: Failed to fetch status');
+        new Notice('Obvec: failed to fetch status');
         return;
       }
 
@@ -445,7 +447,7 @@ export default class ObvecPlugin extends Plugin {
       const limitMB = stats.plan === 'pro' ? '1GB' : '10MB';
 
       new Notice(
-        `Obvec Status\n` +
+        `Obvec status\n` +
         `───────────\n` +
         `Plan: ${stats.plan.toUpperCase()}\n` +
         `Indexed: ${stats.vault_file_count} / ${localFiles} files\n` +
@@ -454,8 +456,9 @@ export default class ObvecPlugin extends Plugin {
         `Last sync: ${stats.last_sync_at ? new Date(stats.last_sync_at + 'Z').toLocaleString() : 'Never'}`,
         10000
       );
-    } catch (e: any) {
-      new Notice(`Obvec: Failed to get status - ${e.message}`);
+    } catch (e: unknown) {
+      const errMsg = e instanceof Error ? e.message : String(e);
+      new Notice(`Obvec: failed to get status - ${errMsg}`);
     }
   }
 }
@@ -475,20 +478,15 @@ class ObvecSettingTab extends PluginSettingTab {
     const { containerEl } = this;
     containerEl.empty();
 
-    containerEl.createEl('h2', { text: 'Obvec - AI RAG Sync' });
-    containerEl.createEl('p', {
-      text: 'Sync your vault to Obvec cloud for AI-powered semantic search via MCP.',
-      cls: 'setting-item-description',
-    });
+    new Setting(containerEl).setName('Obvec — AI search for your second brain').setHeading();
 
     // ─── Live Stats Panel ───
     const statsPanel = containerEl.createDiv({ cls: 'obvec-stats-panel' });
-    statsPanel.style.cssText = 'background: var(--background-secondary); border-radius: 8px; padding: 16px; margin-bottom: 16px;';
     this.statsEl = statsPanel;
     this.refreshStatsPanel(statsPanel);
 
     new Setting(containerEl)
-      .setName('API Key')
+      .setName('API key')
       .setDesc('Your Obvec API key from obsidian.10xboost.org dashboard')
       .addText(text => text
         .setPlaceholder('obv_...')
@@ -509,7 +507,7 @@ class ObvecSettingTab extends PluginSettingTab {
         }));
 
     new Setting(containerEl)
-      .setName('Auto Sync')
+      .setName('Auto sync')
       .setDesc('Automatically sync when files are modified')
       .addToggle(toggle => toggle
         .setValue(this.plugin.settings.autoSync)
@@ -519,7 +517,7 @@ class ObvecSettingTab extends PluginSettingTab {
         }));
 
     new Setting(containerEl)
-      .setName('Sync Interval')
+      .setName('Sync interval')
       .setDesc('Full vault sync interval in minutes')
       .addDropdown(dropdown => dropdown
         .addOption('5', '5 minutes')
@@ -533,7 +531,7 @@ class ObvecSettingTab extends PluginSettingTab {
         }));
 
     new Setting(containerEl)
-      .setName('Exclude Patterns')
+      .setName('Exclude patterns')
       .setDesc('Regex patterns to exclude files (one per line)')
       .addTextArea(text => text
         .setPlaceholder('^Templates/\n\\.excalidraw\\.md$')
@@ -545,26 +543,26 @@ class ObvecSettingTab extends PluginSettingTab {
 
     // Action buttons
     new Setting(containerEl)
-      .setName('Sync Now')
+      .setName('Sync now')
       .setDesc('Manually trigger a full vault sync')
       .addButton(button => button
-        .setButtonText('Sync Now')
+        .setButtonText('Sync now')
         .setCta()
         .onClick(() => {
-          this.plugin.syncAll();
+          void this.plugin.syncAll();
           // Refresh stats panel after sync starts
-          setTimeout(() => this.refreshStatsPanel(statsPanel), 3000);
+          window.setTimeout(() => this.refreshStatsPanel(statsPanel), 3000);
         }));
 
     new Setting(containerEl)
-      .setName('Refresh Stats')
+      .setName('Refresh stats')
       .setDesc('Fetch latest index count from server')
       .addButton(button => button
         .setButtonText('Refresh')
         .onClick(async () => {
           await this.plugin.fetchServerStats();
           this.refreshStatsPanel(statsPanel);
-          new Notice('Obvec: Stats refreshed');
+          new Notice('Obvec: stats refreshed');
         }));
   }
 
@@ -582,18 +580,16 @@ class ObvecSettingTab extends PluginSettingTab {
     if (!stats) {
       panel.createEl('p', { text: 'Loading stats...', cls: 'setting-item-description' });
       // Fetch in background
-      this.plugin.fetchServerStats().then(() => this.refreshStatsPanel(panel));
+      void this.plugin.fetchServerStats().then(() => this.refreshStatsPanel(panel));
       return;
     }
 
-    const grid = panel.createDiv();
-    grid.style.cssText = 'display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; text-align: center;';
+    const grid = panel.createDiv({ cls: 'obvec-stats-grid' });
 
     const makeCard = (label: string, value: string) => {
-      const card = grid.createDiv();
-      card.style.cssText = 'padding: 8px;';
-      card.createEl('div', { text: value, cls: 'obvec-stat-value' }).style.cssText = 'font-size: 1.5em; font-weight: bold;';
-      card.createEl('div', { text: label, cls: 'setting-item-description' }).style.cssText = 'font-size: 0.85em; margin-top: 4px;';
+      const card = grid.createDiv({ cls: 'obvec-stat-card' });
+      card.createEl('div', { text: value, cls: 'obvec-stat-value' });
+      card.createEl('div', { text: label, cls: 'obvec-stat-label setting-item-description' });
     };
 
     makeCard('Indexed', `${stats.vault_file_count} / ${localFiles}`);
@@ -604,19 +600,17 @@ class ObvecSettingTab extends PluginSettingTab {
     const remaining = localFiles - stats.vault_file_count;
     if (remaining > 0) {
       const estMinutes = Math.ceil(remaining / 3 * 3 / 60);
-      const estEl = panel.createEl('p', {
+      panel.createEl('p', {
         text: `${remaining} files to sync (~${estMinutes} min)`,
-        cls: 'setting-item-description',
+        cls: 'obvec-sync-estimate setting-item-description',
       });
-      estEl.style.cssText = 'text-align: center; margin-top: 8px; margin-bottom: 0; color: var(--text-accent);';
     }
 
     if (stats.last_sync_at) {
-      const timeEl = panel.createEl('p', {
+      panel.createEl('p', {
         text: `Last sync: ${new Date(stats.last_sync_at + 'Z').toLocaleString()}`,
-        cls: 'setting-item-description',
+        cls: 'obvec-last-sync setting-item-description',
       });
-      timeEl.style.cssText = `text-align: center; margin-top: ${remaining > 0 ? '4' : '8'}px; margin-bottom: 0;`;
     }
   }
 }

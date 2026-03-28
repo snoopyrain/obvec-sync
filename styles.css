@@ -1,1 +1,40 @@
-/* Obvec Plugin Styles */
+.obvec-stats-panel {
+  background: var(--background-secondary);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.obvec-stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+  text-align: center;
+}
+
+.obvec-stat-card {
+  padding: 8px;
+}
+
+.obvec-stat-value {
+  font-size: 1.5em;
+  font-weight: bold;
+}
+
+.obvec-stat-label {
+  font-size: 0.85em;
+  margin-top: 4px;
+}
+
+.obvec-sync-estimate {
+  text-align: center;
+  margin-top: 8px;
+  margin-bottom: 0;
+  color: var(--text-accent);
+}
+
+.obvec-last-sync {
+  text-align: center;
+  margin-top: 4px;
+  margin-bottom: 0;
+}
