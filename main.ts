@@ -487,9 +487,9 @@ class ObvecSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName('API key')
-      .setDesc('Your Obvec API key from obsidian.10xboost.org dashboard')
+      .setDesc('Your API key from the obsidian.10xboost.org dashboard')
       .addText(text => text
-        .setPlaceholder('obv_...')
+        .setPlaceholder('Paste your API key here')
         .setValue(this.plugin.settings.apiKey)
         .onChange(async (value) => {
           this.plugin.settings.apiKey = value.replace(/\s/g, '');
