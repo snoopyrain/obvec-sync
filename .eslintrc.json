@@ -1,0 +1,7 @@
+{
+  "parser": "@typescript-eslint/parser",
+  "plugins": ["obsidian"],
+  "rules": {
+    "obsidian/sentence-case-in-ui": "error"
+  }
+}
