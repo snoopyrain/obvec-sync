@@ -520,10 +520,10 @@ class ObvecSettingTab extends PluginSettingTab {
       .setName('Sync interval')
       .setDesc('Full vault sync interval in minutes')
       .addDropdown(dropdown => dropdown
-        .addOption('5', '5 minutes')
-        .addOption('15', '15 minutes')
-        .addOption('30', '30 minutes')
-        .addOption('60', '1 hour')
+        .addOption('5', '5 Minutes')
+        .addOption('15', '15 Minutes')
+        .addOption('30', '30 Minutes')
+        .addOption('60', '1 Hour')
         .setValue(String(this.plugin.settings.syncIntervalMinutes))
         .onChange(async (value) => {
           this.plugin.settings.syncIntervalMinutes = parseInt(value);
@@ -534,7 +534,7 @@ class ObvecSettingTab extends PluginSettingTab {
       .setName('Exclude patterns')
       .setDesc('Regex patterns to exclude files (one per line)')
       .addTextArea(text => text
-        .setPlaceholder('^Templates/\n\\.excalidraw\\.md$')
+        .setPlaceholder('')
         .setValue(this.plugin.settings.excludePatterns)
         .onChange(async (value) => {
           this.plugin.settings.excludePatterns = value;
