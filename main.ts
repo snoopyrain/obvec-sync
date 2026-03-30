@@ -487,7 +487,7 @@ class ObvecSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName('API key')
-      .setDesc('Get your key from the dashboard at obsidian.10xboost.org')
+      .setDesc('Available on your dashboard')
       .addText(text => text
         .setPlaceholder('Paste your API key here')
         .setValue(this.plugin.settings.apiKey)
@@ -523,7 +523,7 @@ class ObvecSettingTab extends PluginSettingTab {
         .addOption('5', '5 Minutes')
         .addOption('15', '15 Minutes')
         .addOption('30', '30 Minutes')
-        .addOption('60', '1 Hour')
+        .addOption('60', '60 Minutes')
         .setValue(String(this.plugin.settings.syncIntervalMinutes))
         .onChange(async (value) => {
           this.plugin.settings.syncIntervalMinutes = parseInt(value);
