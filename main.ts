@@ -486,8 +486,8 @@ class ObvecSettingTab extends PluginSettingTab {
     this.refreshStatsPanel(statsPanel);
 
     new Setting(containerEl)
-      .setName('Api key')
-      .setDesc('Get your key from the Obvec dashboard')
+      .setName('API key')
+      .setDesc('Get your key from the dashboard at obsidian.10xboost.org')
       .addText(text => text
         .setPlaceholder('Paste your API key here')
         .setValue(this.plugin.settings.apiKey)
