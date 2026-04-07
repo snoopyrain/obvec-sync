@@ -520,10 +520,10 @@ class ObvecSettingTab extends PluginSettingTab {
       .setName('Sync interval')
       .setDesc('Full vault sync interval in minutes')
       .addDropdown(dropdown => dropdown
-        .addOption('5', '5 Minutes')
-        .addOption('15', '15 Minutes')
-        .addOption('30', '30 Minutes')
-        .addOption('60', '60 Minutes')
+        .addOption('5', '5 minutes')
+        .addOption('15', '15 minutes')
+        .addOption('30', '30 minutes')
+        .addOption('60', '60 minutes')
         .setValue(String(this.plugin.settings.syncIntervalMinutes))
         .onChange(async (value) => {
           this.plugin.settings.syncIntervalMinutes = parseInt(value);
