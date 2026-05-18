@@ -1,7 +1,7 @@
 {
   "id": "obvec-sync",
-  "name": "Obvec - AI Search for Your Second Brain",
-  "version": "0.1.2",
+  "name": "AI Search for Your Second Brain",
+  "version": "0.1.3",
   "minAppVersion": "1.0.0",
   "description": "Let AI search your second brain. Connect your vault to Claude, ChatGPT, and Cursor via MCP.",
   "author": "Obvec",
