@@ -120,7 +120,7 @@ export default class ObvecPlugin extends Plugin {
       void this.fetchServerStats();
       // Initial sync (delayed 10s)
       if (this.settings.autoSync) {
-        window.setTimeout(() => { void this.syncAll(); }, 10000);
+        activeWindow.setTimeout(() => { void this.syncAll(); }, 10000);
       }
     }
   }
@@ -132,7 +132,8 @@ export default class ObvecPlugin extends Plugin {
   // ─── Settings ──────────────────────────────────────────────
 
   async loadSettings() {
-    this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+    const data = (await this.loadData()) as Partial<ObvecSettings> | null;
+    this.settings = Object.assign({}, DEFAULT_SETTINGS, data ?? {});
   }
 
   async saveSettings() {
@@ -147,7 +148,7 @@ export default class ObvecPlugin extends Plugin {
     if (!this.settings.autoSync || !this.settings.apiKey) return;
 
     const ms = this.settings.syncIntervalMinutes * 60 * 1000;
-    this.syncInterval = window.setInterval(() => {
+    this.syncInterval = activeWindow.setInterval(() => {
       void this.syncAll();
     }, ms);
     this.registerInterval(this.syncInterval);
@@ -155,7 +156,7 @@ export default class ObvecPlugin extends Plugin {
 
   stopPeriodicSync() {
     if (this.syncInterval !== null) {
-      window.clearInterval(this.syncInterval);
+      activeWindow.clearInterval(this.syncInterval);
       this.syncInterval = null;
     }
   }
@@ -322,7 +323,6 @@ export default class ObvecPlugin extends Plugin {
 
       // Phase 2: Upload in batches
       const estimatedMinutes = Math.ceil(filesToSync.length / 3 * 3 / 60);
-      console.debug(`Obvec: starting upload of ${filesToSync.length} files (~${estimatedMinutes} min)`);
       new Notice(`Obvec: uploading ${filesToSync.length} files (~${estimatedMinutes} min)`);
       const batchSize = 3; // Small batches to avoid ERR_INSUFFICIENT_RESOURCES
       const batchDelay = 3000; // 3s between batches for embedding processing
@@ -346,7 +346,7 @@ export default class ObvecPlugin extends Plugin {
             if (attempt > 0) {
               // Exponential backoff: 5s, 10s
               const backoff = 5000 * attempt;
-              await new Promise(r => setTimeout(r, backoff));
+              await new Promise(r => activeWindow.setTimeout(r, backoff));
               this.updateStatusBar('syncing', `${uploaded}/${filesToSync.length} retry ${attempt}`);
             }
             const result = await this.sendSyncBatch(batch);
@@ -373,7 +373,7 @@ export default class ObvecPlugin extends Plugin {
             console.error(`Obvec batch ${i / batchSize + 1} attempt ${attempt + 1} failed:`, errMsg);
             if (status === '500' && attempt < 2) {
               // Server error — wait longer before retry
-              await new Promise(r => setTimeout(r, 10000));
+              await new Promise(r => activeWindow.setTimeout(r, 10000));
             }
             if (attempt === 2) {
               totalErrors.push(`Batch ${i / batchSize + 1}: ${errMsg}`);
@@ -383,7 +383,7 @@ export default class ObvecPlugin extends Plugin {
 
         // Delay between batches to avoid overwhelming server + Electron connections
         if (i + batchSize < filesToSync.length && !rateLimited) {
-          await new Promise(r => setTimeout(r, batchDelay));
+          await new Promise(r => activeWindow.setTimeout(r, batchDelay));
         }
       }
 
@@ -551,7 +551,7 @@ class ObvecSettingTab extends PluginSettingTab {
         .onClick(() => {
           void this.plugin.syncAll();
           // Refresh stats panel after sync starts
-          window.setTimeout(() => this.refreshStatsPanel(statsPanel), 3000);
+          activeWindow.setTimeout(() => this.refreshStatsPanel(statsPanel), 3000);
         }));
 
     new Setting(containerEl)
@@ -588,8 +588,8 @@ class ObvecSettingTab extends PluginSettingTab {
 
     const makeCard = (label: string, value: string) => {
       const card = grid.createDiv({ cls: 'obvec-stat-card' });
-      card.createEl('div', { text: value, cls: 'obvec-stat-value' });
-      card.createEl('div', { text: label, cls: 'obvec-stat-label setting-item-description' });
+      card.createDiv({ text: value, cls: 'obvec-stat-value' });
+      card.createDiv({ text: label, cls: 'obvec-stat-label setting-item-description' });
     };
 
     makeCard('Indexed', `${stats.vault_file_count} / ${localFiles}`);
